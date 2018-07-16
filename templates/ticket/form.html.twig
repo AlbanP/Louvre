@@ -1,0 +1,117 @@
+<div class="container">
+  <div class="row">
+    {{ form_start(form, {'attr': {'class': 'form-horizontal'}}) }}
+
+    {{ form_errors(form) }}
+
+    {{ form_row(form.visitors) }}
+    <a href="#" id="add_visitor" class="btn btn-default">{{ 'Add visitor'|trans }}</a>
+
+    {{ form_widget(form.pay, {'attr': {'class': 'btn btn-primary'}}) }}
+    <span>{{ 'Total price : ' |trans}}<span id="total_price"></span> €</span> 
+
+    {{ form_rest(form) }}
+
+    {{ form_end(form) }}
+  </div>
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+$(document).ready(function() {
+    
+    var listRate = { {% for rate in list_rate %}
+        {{ rate.name }} : {{ rate.price }}, 
+    {% endfor %} };
+      
+    var $container = $('div#app_ticket_visitors');
+    var index = $container.find(':input').length;
+
+    $('#app_ticket_visitors').on('change', 'input[type="checkbox"]', function() {
+        calculPrice($(this).attr('id'));  
+    });   
+    
+    $('#app_ticket_visitors').on('change', 'select[name*="[birthday]"]', function() {
+        calculPrice($(this).attr('id'));
+    });
+
+    $('#add_visitor').on('click', function(e) {
+        addVisitor($container);
+        e.preventDefault();
+        return false;
+    });
+
+    if (index == 0) {
+        addVisitor($container);
+    } else {
+        $container.children('div').each(function() {
+            addWidget($(this));
+        });
+    }
+
+    function addVisitor($container) {
+        var template = $container.attr('data-prototype').replace(/__name__/g, index);
+        var $prototype = $(template);
+        addWidget($prototype);
+        $container.append($prototype);
+        index++;
+    }
+
+    function addWidget($prototype) {
+      var $deleteLink = $('<a href="#" class="btn btn-danger">{{ 'Delete visitor'|trans}}</a>');
+      var $priceIndicator = $('<span>{{ 'Price :'|trans }}<span class="price"></span> €</span>');
+      $prototype.children().append($deleteLink);
+      $prototype.children().append($priceIndicator);
+
+      $deleteLink.click(function(e) {
+        $prototype.remove();       
+        e.preventDefault();
+        priceTotal();
+    
+        return false;
+      });
+    }
+
+    function calculPrice(id) {
+      var ticket = id.split('_');
+      var pathVisitor = '#app_ticket_visitors_' + ticket[3];
+      var reduction = $(pathVisitor + '_reduction:checked').val();
+      if (reduction == undefined) {reduction = 0;}
+      var dateVisit = '{{ dateVisit | date("Y/m/d") }}';
+      var day = $(pathVisitor + '_birthday_day').val();
+      var month = $(pathVisitor + '_birthday_month').val();
+      var year = $(pathVisitor + '_birthday_year').val();
+      var birthday = year + '/' + digit2(month) + '/' + digit2(day);
+      var dateVisit = '{{ dateVisit | date("Y/m/d") }}';
+
+      $.ajax({
+        url : "{{ path('ajax_rate')}}",
+        method: "POST",
+        data: {
+          birthday: birthday,
+          reduction: reduction,
+          dateVisit: dateVisit
+        }
+      }).done(function(price){
+        var pathPrice = pathVisitor + ' .price';
+        $(pathPrice).text(price/100);
+        priceTotal();
+      })
+    }
+
+    function priceTotal() {
+      var totalPrice = 0;
+      $('.price').each(function() {
+        if($(this).text()) {
+          totalPrice += parseInt($(this).text());
+        }
+      });
+      $('#total_price').text(totalPrice);
+    }
+
+    function digit2(number) {
+      return (number < 10 ? '0' : '') + number
+    }
+  });
+</script>

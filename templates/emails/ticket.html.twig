@@ -1,0 +1,10 @@
+<h3 class="email-title">Ticket Louvre</h3>
+
+<p class="email-date">{{ 'Visit day : ' | trans }}{{ ticket.dateVisit | localizeddate('none', 'none', null, null, 'EEEE d MMMM Y') }}
+
+<p>{{ ticket.code }}</p>
+
+<div>{{ 'For '| trans }} {% if (ticket.nbVisitor == 1) %} 1 {{ 'visitor' | trans }} {% else %} {{ ticket.nbVisitor }} {{ 'visitors' | trans }} {% endif %} :</div>
+{% for visitor in ticket.visitors %}
+    <div> - <b>{{ visitor.firstName | capitalize }} {{ visitor.lastName | capitalize}}</b> - <i>{{ 'Price : '| trans }}{{ visitor.rate /100 }} €<i></div>
+{% endfor %}
