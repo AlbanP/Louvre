@@ -6,6 +6,8 @@ $(document).ready(function() {
     var index = $container.find(':input').length;
     var deleteBtn = $('.visitor-select').data('delete');
     var priceBtn = $('.visitor-select').data('price');
+    var nbVisitorDay = parseInt($('#nb-visitor-day').text());
+    var nbVisitor = $('#app_ticket_visitors').children().length;
 
     $('.birthday').each(function(){
         calculPrice($(this).attr('id'));
@@ -28,6 +30,7 @@ $(document).ready(function() {
 
     $('#add_visitor').on('click', function(e) {
         addVisitor($container);
+        $('.visitor-add').css('display', 'none');
         e.preventDefault();
         return false;
     });
@@ -40,9 +43,13 @@ $(document).ready(function() {
         });
     }
 
-    function addVisitor($container) {
+    function addVisitor($container)
+    {
         var template = $container.attr('data-prototype').replace(/__name__/g, index);
         var $prototype = $(template);
+
+        nbVisitorDay = nbVisitorDay - 1;
+        $('#nb-visitor-day').text(nbVisitorDay);
 
         addWidget($prototype);
         $container.append($prototype);
@@ -53,26 +60,36 @@ $(document).ready(function() {
         var countryPrev = visitorPrev.find('.country option:selected').val();
         $('#' + prototypeId).find('.name').val(namePrev);
         $('#' + prototypeId).find('.country').val(countryPrev);
+        displayDeleteBtn();
 
         index++;
     }
 
-    function addWidget($prototype) {
-        var $deleteLink = $("<div class='visitor-delete'><a href='#' class='btn btn-delete'>" + deleteBtn + "</a></div>");
+    function addWidget($prototype)
+    {
         var $priceIndicator = $("<div class='visitor-price'>" + priceBtn + "<span class='price'></span> €</div>");
         $prototype.children().append($priceIndicator);
+        
+        var $deleteLink = $("<div class='visitor-delete'><a href='#' class='btn btn-delete'>" + deleteBtn + "</a></div>");
         $prototype.children().append($deleteLink);
 
         $deleteLink.click(function(e) {
             $prototype.remove();
             e.preventDefault();
             priceTotal();
+            
+            displayDeleteBtn();
+
+            nbVisitorDay = nbVisitorDay + 1;
+            $('#nb-visitor-day').text(nbVisitorDay);
+            displayAddBtn();
 
             return false;
         });
     }
 
-    function calculPrice(id) {
+    function calculPrice(id)
+    {
         var ticket = id.split('_');
         var pathVisitor = '#app_ticket_visitors_' + ticket[3];
         var reduction = $(pathVisitor + '_reduction:checked').val();
@@ -87,13 +104,16 @@ $(document).ready(function() {
             data: {
             birthday: birthday,
             reduction: reduction,
-            dateVisit: dateVisit
+            dateVisit: dateVisit,
+            nbVisitor : nbVisitor
             }
         }).done(function(data){
             $(pathVisitor + '_birthday').parent().find('ul').remove();
             if ($(pathVisitor + '_birthday').val() != ''){
                 var birthday = new Date(data.birthday);
                 $(pathVisitor + '_birthday').val(birthday.getFullYear() + '-' + digit2(birthday.getMonth() +1 ) + '-' + digit2(birthday.getDate()));
+                displayAddBtn();
+                $('#nb-visitor-day').text(data.nbVisitorsDay);
             }
             var pathPrice = pathVisitor + ' .price';
             $(pathPrice).text(data.price/100);
@@ -108,7 +128,8 @@ $(document).ready(function() {
         })
     }
 
-    function priceTotal() {
+    function priceTotal()
+    {
         var totalPrice = 0;
         $('.price').each(function() {
             if($(this).text()) {
@@ -118,7 +139,27 @@ $(document).ready(function() {
         $('#total_price').text(totalPrice);
     }
 
-    function digit2(number) {
+    function displayAddBtn()
+    {
+        if (nbVisitorDay > 0) {
+            $('.visitor-add').css('display', 'block');
+        } else {
+            $('.visitor-add').css('display', 'none');
+        }
+    }
+
+    function displayDeleteBtn()
+    {
+        nbVisitor = $('#app_ticket_visitors').children().length;
+        if (nbVisitor > 1) {
+            $('.visitor-delete').css('display', 'block');
+        } else {
+            $('.visitor-delete').css('display', 'none');
+        }
+    }
+
+    function digit2(number)
+    {
         return (number < 10 ? '0' : '') + number
     }
   });

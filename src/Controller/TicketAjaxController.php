@@ -12,17 +12,22 @@ class TicketAjaxController extends Controller
     /**
      * @Route({"en" : "/calculRate", "fr" : "/calculRate"}, name="ajax_rate", requirements={"_locale": "en|fr"})
     */
-    //Route("/calculRate", name="ajax_rate")
-    public function calculRateAction(Request $request, CalculVisitors $defineRate)
+    public function calculRateAction(Request $request, CalculVisitors $calculVisitor)
     {
         if ($request->isXmlHttpRequest()) {
             $birthday = new \DateTime($request->get('birthday'));
             $reduction = $request->get('reduction');
             $dateVisit = new \DateTime($request->get('dateVisit'));
-            $price = $defineRate->calculRate($birthday, $reduction, $dateVisit);
-            //$response = array($price, $birthday);
+            $nbVisitor = $request->get('nbVisitor');
 
-            return $this->json(array('price' => $price, 'birthday' => $birthday));
+            $price = $calculVisitor->calculRate($birthday, $reduction, $dateVisit);
+            $nbVisitorDay = $calculVisitor->calculNbVisitorDay($dateVisit, $nbVisitor);
+
+            return $this->json(array(
+                'price' => $price,
+                'birthday' => $birthday,
+                'nbVisitorsDay' => $nbVisitorDay
+            ));
         }
 
         return new Response("Erreur : Is not Ajax request", 400);

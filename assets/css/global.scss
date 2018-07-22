@@ -70,6 +70,7 @@ input[type="number"]{
     border-radius: 5px;
     font-size: 14px;
     width: 50px;
+    padding-left: 5px;
     margin-top: 5px;
     margin-left: 5px;
 }
@@ -81,4 +82,12 @@ select{
         font-family: Arial, Helvetica, sans-serif;
         font-size: 14px!important;
     }
+}
+.error-card{
+    color: red;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
 }

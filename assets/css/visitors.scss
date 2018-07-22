@@ -35,12 +35,14 @@
         background: rgba(255, 255, 255, 0.7);
         border-radius: 10px;
         padding: 15px 20px 15px 20px;
+        margin-top: 15px;
         margin-bottom: 20px;
     }
     .visitor-price{
         text-align: right;;
     }
     .visitor-delete{
+        display: none;
         text-align: center;
         margin-top: 15px;
         .btn-delete{
@@ -48,8 +50,8 @@
         }
     }
     .visitor-add{
+        display: none;
         text-align: center;
         margin-top: 15px;
-        margin-bottom: 15px;
     }
 }

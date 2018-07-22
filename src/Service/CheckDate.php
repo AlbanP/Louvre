@@ -3,34 +3,34 @@ namespace App\Service;
 
 class CheckDate
 {
-    public function check($date, $today)
+    public function check($dateVisit, $today)
     {
         $start = $today;
         $start->add(new \DateInterval('PT18H'));
         // Check Before today at 18h
-        if ($date < $start) {
+        if ($dateVisit < $start) {
             return false;
         }
         // Check After 6 month at midnight
         $end = $today;
         $end->add(new \DateInterval('P6M'));
         $end->setTime(23, 59, 59); 
-        if ($date > $end) {
+        if ($dateVisit > $end) {
             return false;
         }
         // Check day is Sunday or Thesday
-        $day = $date->format('l');
+        $day = $dateVisit->format('l');
         if ($day == "Sunday" || $day == "Tuesday") {
             return false;
         }
 
-        $this->getHolidays($date, $today);
+        $this->getHolidays($dateVisit, $today);
         
 
         return true;
     }
 
-    function getHolidays($date, $today)
+    function getHolidays($dateVisit, $today)
     {
         if ($today->format('m') > 7) {
             $year = $today->format('Y') + 1;
@@ -64,7 +64,7 @@ class CheckDate
         foreach($holidays as $holiday) {
             $day = new \DateTime();
             $day->setTimestamp($holiday);
-            if ($date == $day) {
+            if ($dateVisit == $day) {
                 return false;
             }
         } 

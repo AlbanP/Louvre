@@ -100,7 +100,7 @@ $(function(){
         var response = false;
         $.each(dateOpen, function(i, d) {
             var open = new Date(d.day.date.slice(0, 10));
-            if (date.getDate() == open.getDate()  && date.getMonth() == open.getMonth() && d.nbVisitor > 3) {
+            if (date.getDate() == open.getDate()  && date.getMonth() == open.getMonth() && d.nbVisitor >= 1000) {
                 response = true;
                 return false;
             }
