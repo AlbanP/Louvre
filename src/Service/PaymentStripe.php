@@ -1,8 +1,11 @@
 <?php
 namespace App\Service;
 
-use App\Service\ErrorStripeMailer;
+use App\Service\Mailer;
 use App\Entity\Ticket;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\RouterInterface;
 
 class PaymentStripe
 {
@@ -10,10 +13,14 @@ class PaymentStripe
     private $current = 'eur';
     private $description = 'TicketLouvre';
     private $mailer;
+    private $session;
+    private $router;
 
-    public function __construct(ErrorStripeMailer $mailer)
+    public function __construct(Mailer $mailer, SessionInterface $session, RouterInterface $router)
     {
         $this->mailer = $mailer;
+        $this->session = $session;
+        $this->router = $router;
     }
 
     public function charge($token, $ticket, $array)
@@ -27,39 +34,37 @@ class PaymentStripe
                         "description" => $this->description,
                         "metadata" => $array));
             
+            return $response;
+            
         } catch(\Stripe\Error\Card $e) {
             // Since it's a decline, \Stripe\Error\Card will be caught
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (\Stripe\Error\RateLimit $e) {
             // Too many requests made to the API too quickly
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (\Stripe\Error\InvalidRequest $e) {
             // Invalid parameters were supplied to Stripe's API
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (\Stripe\Error\Authentication $e) {
             // Authentication with Stripe's API failed
             // (maybe you changed API keys recently)
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (\Stripe\Error\ApiConnection $e) {
             // Network communication with Stripe failed
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (\Stripe\Error\Base $e) {
             // Display a very generic error to the user, and maybe send
             // yourself an email
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         } catch (Exception $e) {
             // Something else happened, completely unrelated to Stripe
-            $response = $this->actionError($e, $ticket);
+            $response = $e->getMessage();
         }
 
-          
-        return $response;
-    }
+        $this->mailer->sendError($response, $ticket);
+        $this->session->getFlashBag()->add('notice', "Sorry, but an error occurred, try again");
 
-    protected function actionError($e, $ticket) {
-        $this->mailer->sendError($e, $ticket);
-        $error = $e->getMessage();
-
-        return $error;
+        return null;
+        // new RedirectResponse($this->router->generate('payment'));
     }
 }

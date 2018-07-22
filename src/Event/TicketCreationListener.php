@@ -2,30 +2,26 @@
 namespace App\Event;
 
 use Doctrine\Common\Persistence\Event\LifecycleEventArgs;
-use App\Service\CreateTicket;
 use App\Entity\Ticket;
 
 class TicketCreationListener
 {
-  /**
-   * @var CreateTicket
-   */
-    private $createTicket;
-
-    public function __construct(CreateTicket $createTicket)
-    {
-        $this->createTicket = $createTicket;
-    }
+    private $prefix = 'TL';
 
     public function postPersist(LifecycleEventArgs $args)
     {
-        $em = $args->getObjectManager();
-        $entity = $args->getObject();
+        $ticket = $args->getObject();
 
-        if (!$entity instanceof Ticket) {
+        if (!$ticket instanceof Ticket) {
             return;
         }
+        
+        $id = $ticket->getId();
+        $code = $this->prefix.$id;
+        $ticket->setCode($code);
 
-        $this->createTicket->createCode($em, $entity);
+        $em = $args->getEntityManager();
+        $em->persist($ticket);
+        $em->flush();
     }
 }

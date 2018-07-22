@@ -6,10 +6,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Service\DefineRate;
 use App\Service\PaymentStripe;
 use App\Service\CalculVisitors;
-use App\Service\EasterDate;
 use App\Service\CheckDate;
 use App\Entity\Ticket;
 use App\Entity\Rate;
@@ -23,28 +21,28 @@ class TicketController extends Controller
     /**
      * @Route({"en" : "/", "fr" : "/"}, name="home", requirements={"_locale": "en|fr"})
     */
-    public function index(Request $request)
+    public function index(Request $request, CheckDate $checkDate)
     {
         //Define DateTime Paris and Offset / UTC
+        $locale = $request->getLocale();
         $dateTimeParis = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
-        $timeZoneOffset = $dateTimeParis->getOffset();
+        $timeZoneOffsetParis = $dateTimeParis->getOffset();
 
         // If the visitor has slecteted dateVisit and day or half-day
         if ($request->isMethod('POST')) {
             $dateVisit = $request->request->get('date-select');
+            $half_day = $request->request->get('half-day-button');
+
             if (! empty($dateVisit)){
-                // Check valid date visit
                 $dateVisit = new \DateTime($dateVisit);
-                $checkDate = new CheckDate();
                 if (!$checkDate->check($dateVisit, $dateTimeParis)){
-                    echo 'test';
+
                     return $this->redirectToRoute('home');
                 }
                 $ticket = new Ticket();
                 // Add date visit to ticket
                 $ticket->setDateVisit($dateVisit);
                 // If visitor select half-day -> true
-                $half_day = $request->request->get('half-day-button');
                 if (isset($half_day)) {
                     $ticket->setHalfDay(true);
                 }
@@ -56,7 +54,6 @@ class TicketController extends Controller
             $this->addFlash('notice', "Please choose a date");
         }
 
-        $locale = $request->getLocale();
         // 
         $ticket = $request->getSession()->get('ticket');
         if (is_null($ticket)){
@@ -67,30 +64,30 @@ class TicketController extends Controller
         // find rate and save to session
         $repository = $this->getDoctrine()->getRepository(Rate::class);
         $listRate = $repository->findAll();
-        //$request->getSession()->set('listRate', $listRate);
         
         $repository = $this->getDoctrine()->getRepository(Calendar::class);
         $listDays = $repository->showDays();
-        $easter = new EasterDate;
-        $easterDate = $easter->getEasterDateYearCurrent();
+
+        $easterDate = $checkDate->getEasterDateYearCurrent();
 
         return $this->render('ticket/index.html.twig', array(
+            'local' => $locale,
+            'timeZoneOffset' => $timeZoneOffsetParis,
             'dateVisit' => $dateVisit,
             'list_rate' => $listRate,
             'list_days' => $listDays,
-            'easter_date'=> $easterDate,
-            'timeZoneOffset' => $timeZoneOffset,
-            'local' => $locale
+            'easter_date'=> $easterDate
         ));
     }
     /**
      * @Route({"en" : "/visitors", "fr" : "/visiteurs"}, name="selectVisitor", requirements={"_locale": "en|fr"})
     */
     //Route("/visiteurs", name="selectVisitor")
-    public function selectVisitor(Request $request)
+    public function selectVisitor(Request $request, CalculVisitors $calculVisitors)
     {
-        // Load ticket and rate by session
+        $locale = $request->getLocale();
         $ticket = $request->getSession()->get('ticket');
+
         if (! $ticket->getDateVisit()) {
             return $this->redirectToRoute('home');
         }
@@ -99,22 +96,16 @@ class TicketController extends Controller
         // When the visitor select pay
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check if have 1 visitor
+            // Check if have 1 or more visitor(s)
             if ($ticket->getVisitors()->isEmpty()) {
                 return $this->redirectToRoute('selectVisitor');
             }
-            // Calcul the rate visitor, the number of visitor and price Ticket
-            //$ticketVisitor = $this->calculVisitor($ticket);
-            $calculVisitors = new CalculVisitors();
-            $ticketVisitor = $calculVisitors->getCalculVisitors($ticket);
-            
+            // Calcul price Ticket for each visitor
+            $ticketVisitor = $calculVisitors->getCalculVisitors($ticket);   
             $request->getSession()->set('ticket', $ticketVisitor);
-            //$request->getSession()->getFlashBag()->add('notice', 'Visiteur bien enregistré.');
 
             return $this->redirectToRoute('payment');
         }
-        $locale = $request->getLocale();
-        $listRate = $request->getSession()->get('listRate');
 
         return $this->render('ticket/selectVisitor.html.twig', array(
             'form' => $form->createView(),
@@ -124,7 +115,7 @@ class TicketController extends Controller
     /**
      * @Route({"en" : "/payment", "fr" : "/paiement"}, name="payment", requirements={"_locale": "en|fr"})
     */
-    public function payment(Request $request, \Swift_Mailer $mailer, PaymentStripe $payment)
+    public function payment(Request $request, PaymentStripe $payment)
     {
         $locale = $request->getLocale();
         $ticket = $request->getSession()->get('ticket');
@@ -134,50 +125,53 @@ class TicketController extends Controller
 
         if ($request->isMethod('POST')) {
             $token = $request->request->get('stripeToken');
-            $ticket->setEmail($request->request->get('email'));
+            $email = $request->request->get('email');
+
+            $ticket->setEmail($email);
             $dateVisit = $ticket->getDateVisit();
             $nbVisitor = $ticket->getNbVisitor();
             // Service payment Stripe
             $response = $payment->charge($token, $ticket, array(
-                "Email" => $ticket->getEmail(),
-                "Nombre de Ticket" => $nbVisitor,
-                "Date de visite" => $dateVisit->format('d/m/Y')
+                "Email"             => $email,
+                "Nombre de Ticket"  => $nbVisitor,
+                "Date de visite"    => $dateVisit->format('d/m/Y')
             ));
-            if (is_object($response)){
-                // Save date and number visitor to calendar
-                $repository = $this->getDoctrine()->getRepository(Calendar::class);
-                $calendar = $repository->findOneByDay($dateVisit);
-                if(is_null($calendar)) {
-                    $calendar = new Calendar();
-                    $calendar->setDay($dateVisit);
-                    $calendar->setNbVisitor($nbVisitor);
-                } else {
-                    $nbVisitorDay = $calendar->getNbVisitor() + $nbVisitor ;
-                    $calendar->setNbVisitor($nbVisitorDay);
-                }
+            if (is_null($response)){
 
-                // Save data response to bill entity
-                $bill = new Bill();
-                $bill->setTransactionId($response['id']);
-                $dateBill = new \DateTime();
-                $dateBill->setTimestamp($response['created']);
-                $bill->setDateBill($dateBill);
-                $bill->setPrice($response['amount']);
-                $ticket->setBill($bill);
-
-                $em = $this->getDoctrine()->getManager();
-                $em->persist($ticket);
-                $em->persist($calendar);
-                // Save ticket to DB
-                $em->flush();
-            
-                return $this->redirectToRoute('showTicket');
+                return $this->redirectToRoute('payment');
             }
-            $this->addFlash('notice', "Sorry, but an error occurred, try again");
+            // Save date and number visitor to calendar
+            $repository = $this->getDoctrine()->getRepository(Calendar::class);
+            $calendar = $repository->findOneByDay($dateVisit);
+            if(is_null($calendar)) {
+                $calendar = new Calendar();
+                $calendar->setDay($dateVisit);
+                $calendar->setNbVisitor($nbVisitor);
+            } else {
+                $nbVisitorDay = $calendar->getNbVisitor() + $nbVisitor ;
+                $calendar->setNbVisitor($nbVisitorDay);
+            }
+
+            // Save data response to bill entity
+            $bill = new Bill();
+            $bill->setTransactionId($response['id']);
+            $dateBill = new \DateTime();
+            $dateBill->setTimestamp($response['created']);
+            $bill->setDateBill($dateBill);
+            $bill->setPrice($response['amount']);
+            $ticket->setBill($bill);
+
+            $em = $this->getDoctrine()->getManager();
+            $em->persist($ticket);
+            $em->persist($calendar);
+            // Save ticket to DB
+            $em->flush();
+        
+            return $this->redirectToRoute('showTicket');
         }
         return $this->render('ticket/payment.html.twig', array(
-            'ticket' => $ticket,
-            'local' => $locale));
+            'local'     => $locale,
+            'ticket'    => $ticket));
     }
     /**
      * @Route({"en" : "/ticket", "fr" : "/ticket"}, name="showTicket", requirements={"_locale": "en|fr"})
@@ -191,8 +185,8 @@ class TicketController extends Controller
         }
 
         return $this->render('ticket/showTicket.html.twig', array(
-            'ticket' => $ticket,
-            'local' => $locale));
+            'local'     => $locale,
+            'ticket'    => $ticket));
     }
 
     /*

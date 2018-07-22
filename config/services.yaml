@@ -35,7 +35,7 @@ services:
         tags:
           - { name: doctrine.event_listener, event: postPersist }
 
-    app\Event\TicketUpdateListener:
+    app\Event\TicketMailerListener:
         tags:
           - { name: doctrine.event_listener, event: postUpdate }
     

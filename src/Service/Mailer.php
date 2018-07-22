@@ -3,7 +3,7 @@ namespace App\Service;
 
 use App\Entity\Ticket;
 
-class ErrorStripeMailer
+class Mailer
 {
     /**
     * @var \Swift_Mailer
@@ -35,6 +35,21 @@ class ErrorStripeMailer
                 'ticket' => $ticket,
                 'error' => $e
             )),
+        'text/html');
+
+        $this->mailer->send($message);
+    }
+
+    public function sendTicket(Ticket $ticket)
+    {
+        $message = (new \Swift_Message('Ticket Louvre'))
+        ->setFrom('a.painchault@gmail.com')
+        ->setTo($ticket->getEmail())
+        ->setBody(
+            $this->templating->render(
+            'emails/ticket.html.twig',
+            array('ticket' => $ticket)
+        ),
         'text/html');
 
         $this->mailer->send($message);
