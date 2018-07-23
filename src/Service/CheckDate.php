@@ -5,10 +5,10 @@ class CheckDate
 {
     public function check($dateVisit, $today)
     {
-        $start = $today;
-        $start->add(new \DateInterval('PT18H'));
         // Check Before today at 18h
-        if ($dateVisit < $start) {
+        $start = $dateVisit;
+        $start->add(new \DateInterval('PT18H'));
+        if ($start < $today) {
             return false;
         }
         // Check After 6 month at midnight
@@ -30,7 +30,7 @@ class CheckDate
         return true;
     }
 
-    function getHolidays($dateVisit, $today)
+    public function getHolidays($dateVisit, $today)
     {
         if ($today->format('m') > 7) {
             $year = $today->format('Y') + 1;
