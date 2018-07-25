@@ -19,14 +19,8 @@ class Mailer
 
     public function sendError($e ,Ticket $ticket)
     {
-        $date = new \DateTime();
-        $text    = "<h3>Ticket Louvre - Erreur Stripe</h3>";
-        $text   .="<p>Message erreur : <b>" . $e ."</b></p>";
-        $text   .="<p>Date erreur : " . $date->format('d/m/Y H:i') ."</p>";
-        $text   .="<p>Email utilisateur : " . $ticket->getEmail() ."</p>";
-
         $message = (new \Swift_Message('Ticket Louvre - Erreur Stripe'))
-        ->setFrom('a.painchault@gmail.com')
+        ->setFrom('contact@picomweb.fr')
         ->setTo('a.painchault@gmail.com')
         ->setBody(
             $this->templating->render(
@@ -43,7 +37,7 @@ class Mailer
     public function sendTicket(Ticket $ticket)
     {
         $message = (new \Swift_Message('Ticket Louvre'))
-        ->setFrom('a.painchault@gmail.com')
+        ->setFrom('ticket@louvre.fr')
         ->setTo($ticket->getEmail())
         ->setBody(
             $this->templating->render(

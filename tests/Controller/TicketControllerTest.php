@@ -5,12 +5,22 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class TicketControllerTest extends WebTestCase
 {
-    public function testIndex()
+    /**
+     * @test 
+    */
+    public function testIndexBadDate()
     {
         $client = static::createClient();
 
-        $client->request('GET', '/');
+        $crawler = $client->request('GET', '/');
 
-        $this->assertEquals(200, $client->getResponse()->getStatusCode());
+        $form = $crawler->filter('.calendar-form')->form();
+        $form['date-select'] = '01-01-2018';
+        $crawler = $client->submit($form);
+
+        $crawler = $client->followRedirect();
+
+
+        $this->assertSame('Bad date, please choose another date', $crawler->filter('.error-card')->text());
     }
 }

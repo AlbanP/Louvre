@@ -1,22 +1,11 @@
 <?php
 namespace App\Service;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use App\Entity\Ticket;
 use App\Entity\Calendar;
 
 class CalculVisitors
 {
-    private $em;
-    private $session;
-    private $maxVisitorDay = 1000;
-
-    public function __construct(EntityManagerInterface $em, SessionInterface $session)
-    {
-        $this->em = $em;
-        $this->session = $session;
-    }
 
     public function getCalculVisitors(Ticket $ticket)
     {
@@ -41,13 +30,6 @@ class CalculVisitors
         // Save to ticket number visitor and total price
         $ticket->setNbVisitor($nbVisitor);
         $ticket->setPrice($totalPrice);
-
-        $nbVisitorDay = $this->calculNbVisitorDay($dateVisit, $nbVisitor);
-        if ($nbVisitorDay < 0) {
-            $this->session->getFlashBag()->add('notice', "Sorry, but avaible place is full, try another day");
-
-            return false;
-        }
 
         return $ticket;
     }
@@ -81,16 +63,4 @@ class CalculVisitors
         return $price;
     }
 
-    public function calculNbVisitorDay($dateVisit, $nbVisitor)
-    {
-        if (! $nbVisitor) $nbVisitor = 0;
-
-        $repository = $this->em->getRepository(Calendar::class);
-        $calendar = $repository->findOneByDay($dateVisit);
-
-        $nbVisitorDay = $this->maxVisitorDay - $nbVisitor;
-        if ($calendar) $nbVisitorDay = $nbVisitorDay - $calendar->getNbVisitor();
-
-        return $nbVisitorDay;
-    }
 }

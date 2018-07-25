@@ -1,10 +1,22 @@
-<h3 class="email-title">Ticket Louvre</h3>
 
-<p class="email-date">{{ 'Visit day : ' | trans }}{{ ticket.dateVisit | localizeddate('none', 'none', null, null, 'EEEE d MMMM Y') }}
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="{{ absolute_url(asset('build/mail.css')) }}">
+    </head>
+    <body>
+        <div>
+            <img class="logo" src="{{ absolute_url(asset('img/ticket-mail.png')) }}" alt="Ticket Louvre"/>
+            <span class="title">Ticket Louvre</span>
+        </div>
 
-<p>{{ ticket.code }}</p>
+        <p class="date">{{ 'Visit day : ' | trans }}{{ ticket.dateVisit | localizeddate('none', 'none', null, null, 'EEEE d MMMM Y') }} {% if (ticket.halfDay == 1) %} {{ 'for half-day'|trans}} {% else %} {{ 'for all day'|trans }} {% endif %}</p>
 
-<div>{{ 'For '| trans }} {% if (ticket.nbVisitor == 1) %} 1 {{ 'visitor' | trans }} {% else %} {{ ticket.nbVisitor }} {{ 'visitors' | trans }} {% endif %} :</div>
-{% for visitor in ticket.visitors %}
-    <div> - <b>{{ visitor.firstName | capitalize }} {{ visitor.lastName | capitalize}}</b> - <i>{{ 'Price : '| trans }}{{ visitor.rate /100 }} €<i></div>
-{% endfor %}
+        <p class="code">{{ 'Access code : ' | trans }} {{ ticket.code }}</p>
+
+        <div class="visitor-title">{{ 'For '| trans }} {% if (ticket.nbVisitor == 1) %} 1 {{ 'visitor' | trans }} {% else %} {{ ticket.nbVisitor }} {{ 'visitors' | trans }} {% endif %} :</div>
+        {% for visitor in ticket.visitors %}
+            <div class="visitor"> - <b>{{ visitor.firstName | capitalize }} {{ visitor.lastName | capitalize}}</b> - <i>{{ 'Price : '| trans }}{{ visitor.rate /100 }} €</i></div>
+        {% endfor %}
+    </body>
+</html>

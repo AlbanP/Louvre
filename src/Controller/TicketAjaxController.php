@@ -6,22 +6,23 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\CalculVisitors;
+use App\Service\CheckNbVisitor;
 
 class TicketAjaxController extends Controller
 {
     /**
      * @Route({"en" : "/calculRate", "fr" : "/calculRate"}, name="ajax_rate", requirements={"_locale": "en|fr"})
     */
-    public function calculRateAction(Request $request, CalculVisitors $calculVisitor)
+    public function calculRateAction(Request $request, CalculVisitors $calculVisitor, CheckNbVisitor $checkNbVisitor)
     {
-        if ($request->isXmlHttpRequest()) {
+        if ($request->isMethod('POST')) {
             $birthday = new \DateTime($request->get('birthday'));
             $reduction = $request->get('reduction');
             $dateVisit = new \DateTime($request->get('dateVisit'));
             $nbVisitor = $request->get('nbVisitor');
 
             $price = $calculVisitor->calculRate($birthday, $reduction, $dateVisit);
-            $nbVisitorDay = $calculVisitor->calculNbVisitorDay($dateVisit, $nbVisitor);
+            $nbVisitorDay = $checkNbVisitor->calculNbVisitorDay($dateVisit, $nbVisitor);
 
             return $this->json(array(
                 'price' => $price,

@@ -8,6 +8,7 @@ use Symfony\Component\Translation\TranslatorInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\PaymentTicket;
 use App\Service\CalculVisitors;
+use App\Service\CheckNbVisitor;
 use App\Service\CheckDate;
 use App\Entity\Ticket;
 use App\Entity\Calendar;
@@ -84,12 +85,12 @@ class TicketController extends Controller
      * @Route({"en" : "/visitors", "fr" : "/visiteurs"}, name="selectVisitor", requirements={"_locale": "en|fr"})
     */
     //Route("/visiteurs", name="selectVisitor")
-    public function selectVisitor(Request $request, CalculVisitors $calculVisitors)
+    public function selectVisitor(Request $request, CalculVisitors $calculVisitors, CheckNbVisitor $checkNbVisitor)
     {
         $locale = $request->getLocale();
         $ticket = $request->getSession()->get('ticket');
         $dateVisit = $ticket->getDateVisit();
-        $nbVisitorDay = $calculVisitors->calculNbVisitorDay($dateVisit, $ticket->getNbVisitor());
+        $nbVisitorDay = $checkNbVisitor->calculNbVisitorDay($dateVisit, $ticket->getNbVisitor());
 
         if (! $dateVisit) {
             return $this->redirectToRoute('home');
@@ -101,8 +102,9 @@ class TicketController extends Controller
         if ($form->isSubmitted() && $form->isValid()) {
             // Check if have 1 or more visitor(s)
             $ticketVisitor = $calculVisitors->getCalculVisitors($ticket);
-            if ($ticket->getVisitors()->isEmpty() || ! $ticketVisitor) {
+            if ($ticket->getVisitors()->isEmpty()) {
 
+                $this->getFlashBag()->add('notice', "Sorry, but avaible place is full, try another day");
                 return $this->redirectToRoute('selectVisitor');
             }
             $request->getSession()->set('ticket', $ticketVisitor);
@@ -162,6 +164,7 @@ class TicketController extends Controller
         if (is_null($ticket->getBill())) {
             return $this->redirectToRoute('payment');
         }
+        $request->getSession()->clear();
 
         return $this->render('ticket/showTicket.html.twig', array(
             'local'     => $locale,

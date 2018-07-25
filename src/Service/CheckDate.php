@@ -6,13 +6,13 @@ class CheckDate
     public function check($dateVisit, $today)
     {
         // Check Before today at 18h
-        $start = $dateVisit;
+        $start = clone $dateVisit;
         $start->add(new \DateInterval('PT18H'));
         if ($start < $today) {
             return false;
         }
         // Check After 6 month at midnight
-        $end = $today;
+        $end = clone $today;
         $end->add(new \DateInterval('P6M'));
         $end->setTime(23, 59, 59); 
         if ($dateVisit > $end) {
@@ -24,14 +24,7 @@ class CheckDate
             return false;
         }
 
-        $this->getHolidays($dateVisit, $today);
-        
-
-        return true;
-    }
-
-    public function getHolidays($dateVisit, $today)
-    {
+        //
         if ($today->format('m') > 7) {
             $year = $today->format('Y') + 1;
         } else {
@@ -56,18 +49,21 @@ class CheckDate
             mktime(0, 0, 0, 12, 25, $year),  // Noel
  
             // Dates variables
-            mktime(0, 0, 0, $easterMonth, $easterDay + 1,  $easterYear), //Lundi de Pâques
-            mktime(0, 0, 0, $easterMonth, $easterDay + 39, $easterYear), //Jeudi de l'Ascension
-            mktime(0, 0, 0, $easterMonth, $easterDay + 50, $easterYear), //Lundi de Pentecôte
+            mktime(0, 0, 0, $easterMonth, $easterDay + 2,  $easterYear), //Lundi de Pâques
+            mktime(0, 0, 0, $easterMonth, $easterDay + 40, $easterYear), //Jeudi de l'Ascension
+            mktime(0, 0, 0, $easterMonth, $easterDay + 51, $easterYear), //Lundi de Pentecôte
         );
 
         foreach($holidays as $holiday) {
             $day = new \DateTime();
             $day->setTimestamp($holiday);
             if ($dateVisit == $day) {
+
                 return false;
             }
-        } 
+        }
+
+        return true;
     }
     
     public function getEasterDateYearCurrent()
